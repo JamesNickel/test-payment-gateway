@@ -53,7 +53,10 @@ class PaymentHandler
 
         DB::table('payments')
             ->where('request_number', $requestNumber)
-            ->update(['status'=> 'initiated']);
+            ->update([
+                'gateway_request_id'=> $gatewayRequestId
+            ]);
+
         $paymentObject = DB::table('payments')
             ->where('request_number', $requestNumber)
             ->first();
