@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Payment;
+namespace App\Classes\Payment;
 
-use App\Payment\PaymentGateway;
 use Illuminate\Support\Facades\Http;
 
 class MellatGateway extends PaymentGateway

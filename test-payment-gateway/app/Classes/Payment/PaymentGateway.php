@@ -1,7 +1,7 @@
 <?php
 
 
-namespace App\Payment;
+namespace App\Classes\Payment;
 
 
 abstract class PaymentGateway

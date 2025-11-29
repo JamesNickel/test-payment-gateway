@@ -1,9 +1,7 @@
 <?php
 
-namespace App\Payment;
+namespace App\Classes\Payment;
 
-use App\Payment\PaymentGateway;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -19,7 +17,6 @@ class PaymentHandler
     public function initPayment($userId, $amount): array
     {
 
-        return [];
         $paymentId = DB::table('payments')->insertGetId([
             'user_id'=> $userId,
             'amount'=> $amount,
