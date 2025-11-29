@@ -17,11 +17,8 @@ return new class extends Migration
             $table->float('amount');
             $table->string('request_number')->unique();
             $table->string('tracking_code')->unique();
-            $table->string('url')->unique();
-            $table->string('status')->unique();
-            $table->string('response_data')->unique();
-            $table->string('gateway')->unique();
-            $table->string('gateway_request_id')->unique();
+            $table->string('gateway');
+            $table->string('gateway_request_id');
             $table->timestamps();
         });
     }
