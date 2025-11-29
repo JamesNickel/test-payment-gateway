@@ -521,7 +521,7 @@ return [
     | Class Maps
     |--------------------------------------------------------------------------
     |
-    | This is the array of Classes that maps to Drivers above.
+    | This is the array of Services that maps to Drivers above.
     | You can create your own driver if you like and add the
     | config in the drivers array and the class to use for
     | here with the same name. You will have to extend

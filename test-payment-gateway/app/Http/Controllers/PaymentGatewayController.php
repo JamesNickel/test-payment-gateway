@@ -2,29 +2,33 @@
 
 namespace App\Http\Controllers;
 
-use App\Classes\Payment\MellatGateway;
-use App\Classes\Payment\PaymentHandler;
+use App\Services\Payment\PaymentHandler;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class PaymentGatewayController extends Controller
 {
+    protected PaymentHandler $paymentHandler;
 
-
-    public function init(Request $request): JsonResponse
+    public function __construct(PaymentHandler $paymentHandler)
     {
-        $paymentGateway = new MellatGateway();
-        $paymentHandler = new PaymentHandler($paymentGateway);
+        $this->paymentHandler = $paymentHandler;
+    }
+
+    public function getUrl(Request $request)
+    {
+        $validated = $request->validate([
+            'amount' => 'required',
+        ]);
         //$userId = $request->getUser()->id;
-        $userId = 1;
         $amount = $request->input('amount');
-        $result = $paymentHandler->initPayment($userId, $amount);
-        //$result['success'] = true;
-        //$result['data'] = [];
+        $userId = 1;
+
+        $result = $this->paymentHandler->initPayment($userId, $amount);
 
         if($result['success']){
 
-            // Return redirect()->away('https://www.example.com');
+            // Return redirect()->away($result['data']['url']);
             return response()->json([
                 'success' => true,
                 'url' => $result['data']['url'],
@@ -36,17 +40,16 @@ class PaymentGatewayController extends Controller
                 'message' => $result['message'],
             ]);
         }
+
     }
-    public function callback(Request $request): JsonResponse
+    public function gatewayCallback(Request $request)
     {
-        $paymentGateway = new MellatGateway();
-        $paymentHandler = new PaymentHandler($paymentGateway);
-        $result = $paymentHandler->handlePaymentCallback($request);
+        $result = $this->paymentHandler->handlePaymentCallback($request);
         if($result['success']){
             return response()->json([
                 'success' => true,
                 'message' => '',
-                'data'=> []
+                'data'=> $result['data']
             ]);
         }
         else{

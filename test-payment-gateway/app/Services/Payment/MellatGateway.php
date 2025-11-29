@@ -1,12 +1,15 @@
 <?php
 
-namespace App\Classes\Payment;
+namespace App\Services\Payment;
 
+use App\Services\Payment\PaymentGateway;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
 class MellatGateway extends PaymentGateway
 {
-    public string $gateway = 'mellat';
+
+    public string $name = 'mellat';
 
     public function getPaymentUrl($paymentObject): array
     {
@@ -49,6 +52,22 @@ class MellatGateway extends PaymentGateway
         ];
     }
 
+    public function parseGatewayRequest(Request $request): array
+    {
+        return [
+            'success'=> true,
+            'message'=> '',
+            'result'=> [
+                //'request_number' => 'PRN-78345693245', // extract from request
+                'request_number' => $request->input('request_number'), // extract from request
+                //'tracking_code' => '23458790324856', // extract from request
+                'tracking_code' => $request->input('tracking_code'), // extract from request
+                'bank_status' => '0',
+                'raw_response' => json_encode($request->getContent())
+            ]
+        ];
+    }
+
     public function verifyPayment($paymentObject): array
     {
 
@@ -58,7 +77,7 @@ class MellatGateway extends PaymentGateway
             'success'=> true,
             'message'=> '',
             'result'=> [
-                'tracking_code' => '',
+                'tracking_code' => '23458790324856',
                 'bank_status' => '0',
                 'raw_response' => '[]'
             ]

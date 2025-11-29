@@ -1,16 +1,14 @@
 <?php
 
 
-namespace App\Classes\Payment;
+namespace App\Services\Payment;
 
+
+use Illuminate\Http\Request;
 
 abstract class PaymentGateway
 {
 
-
-    public function __construct()
-    {
-    }
 
     /**
      * This method is called when the payment process begins
@@ -18,6 +16,13 @@ abstract class PaymentGateway
      * @return mixed
      */
     abstract public function getPaymentUrl($paymentObject): array;
+
+    /**
+     * This method parses the request from the gateway to our callback url
+     * @param $paymentObject
+     * @return array
+     */
+    abstract public function parseGatewayRequest(Request $request): array;
 
     /**
      * This method is called when the payment callback is called, and we have to verify the payment

@@ -1,17 +1,18 @@
 <?php
 
-namespace App\Classes\Payment;
+namespace App\Services\Payment;
 
+use App\Services\Payment\PaymentGateway;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class PaymentHandler
 {
-    private PaymentGateway $paymentGateway;
+    public PaymentGateway $paymentGateway;
 
-    public function __construct(PaymentGateway $paymentGateway){
-        $this->paymentGateway = $paymentGateway;
+    public function __construct(){
+        $this->paymentGateway = new MellatGateway();
     }
 
     public function initPayment($userId, $amount): array
@@ -22,20 +23,21 @@ class PaymentHandler
             'amount'=> $amount,
             'request_number'=> $this->createRandomRequestNumber(),
             'tracking_code'=> '',
-            'gateway'=> $this->paymentGateway->gateway,
+            'gateway'=> $this->paymentGateway->name,
             'gateway_request_id'=> '',
-            'created_at'=> now()->timestamp,
-            'updated_at'=> now()->timestamp,
+            'created_at'=> now(),
+            'updated_at'=> now(),
         ]);
         $paymentObject = DB::table('payments')->where('id', $paymentId)->first();
 
         DB::table('payment_logs')->insert([
             'payment_id'=> $paymentId,
             'status'=> 'init',
-            'created_at'=> now()->timestamp,
+            'created_at'=> now(),
         ]);
 
         $response = $this->paymentGateway->getPaymentUrl($paymentObject);
+
         $result = $response['result'];
 
         if($response['success']){
@@ -53,7 +55,7 @@ class PaymentHandler
                 'status'=> 'init_success',
                 'bank_status'=> $result['bank_status'],
                 'raw_response'=> $result['raw_response'],
-                'created_at'=> now()->timestamp,
+                'created_at'=> now(),
             ]);
 
             return [
@@ -66,13 +68,12 @@ class PaymentHandler
         }
         else{
 
-
             DB::table('payment_logs')->insert([
                 'payment_id'=> $paymentId,
                 'status'=> 'init_failed',
                 'bank_status'=> $result['bank_status'],
                 'raw_response'=> $result['raw_response'],
-                'created_at'=> now()->timestamp,
+                'created_at'=> now(),
             ]);
 
             return [
@@ -86,58 +87,72 @@ class PaymentHandler
     public function handlePaymentCallback(Request $request): array
     {
 
-        $requestNumber = 'PRN-78345693245'; // extract from request
-        $trackingCode = '23458790324856'; // extract from request
-
-        DB::table('payments')
-            ->where('request_number', $requestNumber)
-            ->update([
-                'tracking_code' => $trackingCode,
-            ]);
-        $paymentObject = DB::table('payments')
-            ->where('request_number', $requestNumber)
-            ->first();
-
-        DB::table('payment_logs')->insert([
-            'payment_id'=> $paymentObject->id,
-            'status'=> 'verify',
-            'created_at'=> now()->timestamp,
-        ]);
-
-        $response = $this->paymentGateway->verifyPayment($paymentObject);
+        $response = $this->paymentGateway->parseGatewayRequest($request);
         $result = $response['result'];
 
         if($response['success']){
 
+            $requestNumber = $result['request_number'];
+            $trackingCode = $result['tracking_code'];
+
+            DB::table('payments')
+                ->where('request_number', $requestNumber)
+                ->update([
+                    'tracking_code' => $trackingCode,
+                ]);
+            $paymentObject = DB::table('payments')
+                ->where('request_number', $requestNumber)
+                ->first();
+
             DB::table('payment_logs')->insert([
                 'payment_id'=> $paymentObject->id,
-                'status'=> 'verify_success',
-                'bank_status'=> $result['bank_status'],
-                'raw_response'=> $result['raw_response'],
-                'created_at'=> now()->timestamp,
+                'status'=> 'verify',
+                'created_at'=> now(),
             ]);
 
-            return [
-                'success' => true,
-                'message'=> 'پرداخت موفق',
-                'data'=> $paymentObject,
-            ];
+            $response = $this->paymentGateway->verifyPayment($paymentObject);
+            $result = $response['result'];
+
+            if($response['success']){
+
+                DB::table('payment_logs')->insert([
+                    'payment_id'=> $paymentObject->id,
+                    'status'=> 'verify_success',
+                    'bank_status'=> $result['bank_status'],
+                    'raw_response'=> $result['raw_response'],
+                    'created_at'=> now(),
+                ]);
+
+                return [
+                    'success' => true,
+                    'message'=> 'پرداخت موفق',
+                    'data'=> $result,
+                ];
+            }
+            else{
+
+                DB::table('payment_logs')->insert([
+                    'payment_id'=> $paymentObject->id,
+                    'status'=> 'verify_failed',
+                    'bank_status'=> $result['bank_status'],
+                    'raw_response'=> $result['raw_response'],
+                    'created_at'=> now(),
+                ]);
+
+
+                return [
+                    'success' => false,
+                    'message'=> $response['message'],
+                    'data'=> $result,
+                ];
+            }
         }
         else{
 
-            DB::table('payment_logs')->insert([
-                'payment_id'=> $paymentObject->id,
-                'status'=> 'verify_failed',
-                'bank_status'=> $result['bank_status'],
-                'raw_response'=> $result['raw_response'],
-                'created_at'=> now()->timestamp,
-            ]);
-
-
             return [
                 'success' => false,
-                'message'=> $response['message'],
-                'data'=> $paymentObject,
+                'message'=> 'Unable to parse request from callback',
+                'data'=> $result,
             ];
         }
 
@@ -162,11 +177,11 @@ class PaymentHandler
 
     private function createRandomRequestNumber(): string
     {
-        do {
-            $requestNumber = 'PRN-'.Str::random(8);
-        } while (DB::table('payments')
-            ->where('request_number', $requestNumber)
-            ->exists());
+        //do {
+        //    $requestNumber = 'PRN-'.Str::random(8);
+        //} while (DB::table('payments')
+        //    ->where('request_number', $requestNumber)
+        //    ->exists());
         //return $requestNumber;
         return 'PRN-78345693245';
     }

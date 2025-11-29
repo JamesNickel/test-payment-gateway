@@ -16,7 +16,7 @@ return new class extends Migration
             $table->integer('user_id');
             $table->float('amount');
             $table->string('request_number')->unique();
-            $table->string('tracking_code')->unique();
+            $table->string('tracking_code');
             $table->string('gateway');
             $table->string('gateway_request_id');
             $table->timestamps();
